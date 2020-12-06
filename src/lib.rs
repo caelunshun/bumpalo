@@ -165,6 +165,7 @@ to only do so it when done deliberately and for good reasons.
 
  */
 
+#![feature(allocator_api, nonnull_slice_from_raw_parts)]
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
 #![no_std]
@@ -179,13 +180,13 @@ pub mod collections;
 
 mod alloc;
 
-use core::cell::Cell;
 use core::iter;
 use core::marker::PhantomData;
 use core::mem;
 use core::ptr::{self, NonNull};
 use core::slice;
 use core::str;
+use core::{alloc::AllocRef, cell::Cell};
 use core_alloc::alloc::{alloc, dealloc, Layout};
 
 /// An arena to bump allocate into.
@@ -1244,6 +1245,17 @@ unsafe impl<'a> alloc::Alloc for &'a Bump {
         let new_ptr = self.try_alloc_layout(new_layout)?;
         ptr::copy_nonoverlapping(ptr.as_ptr(), new_ptr.as_ptr(), old_size);
         Ok(new_ptr)
+    }
+}
+
+unsafe impl<'a> AllocRef for &'a Bump {
+    fn alloc(&self, layout: Layout) -> Result<NonNull<[u8]>, core::alloc::AllocError> {
+        let ptr = self.alloc_layout(layout);
+        Ok(NonNull::slice_from_raw_parts(ptr, layout.size()))
+    }
+
+    unsafe fn dealloc(&self, _ptr: NonNull<u8>, _layout: Layout) {
+        // no-op
     }
 }
 
