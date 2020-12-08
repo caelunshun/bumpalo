@@ -186,7 +186,7 @@ use core::mem;
 use core::ptr::{self, NonNull};
 use core::slice;
 use core::str;
-use core::{alloc::AllocRef, cell::Cell};
+use core::{alloc::Allocator, cell::Cell};
 use core_alloc::alloc::{alloc, dealloc, Layout};
 
 /// An arena to bump allocate into.
@@ -1248,13 +1248,13 @@ unsafe impl<'a> alloc::Alloc for &'a Bump {
     }
 }
 
-unsafe impl<'a> AllocRef for &'a Bump {
-    fn alloc(&self, layout: Layout) -> Result<NonNull<[u8]>, core::alloc::AllocError> {
+unsafe impl<'a> Allocator for &'a Bump {
+    fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, core::alloc::AllocError> {
         let ptr = self.alloc_layout(layout);
         Ok(NonNull::slice_from_raw_parts(ptr, layout.size()))
     }
 
-    unsafe fn dealloc(&self, _ptr: NonNull<u8>, _layout: Layout) {
+    unsafe fn deallocate(&self, _ptr: NonNull<u8>, _layout: Layout) {
         // no-op
     }
 }
